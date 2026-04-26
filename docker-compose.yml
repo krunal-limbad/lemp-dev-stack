@@ -1,0 +1,76 @@
+version: '3.9'
+
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: lemp-nginx
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/sites-enabled:/etc/nginx/conf.d:ro
+      - ./webroot:/var/www/html
+    depends_on:
+      phpfpm:
+        condition: service_healthy
+    networks:
+      - lemp-network
+    restart: unless-stopped
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: lemp-phpmyadmin
+    ports:
+      - "127.0.0.1:${PHPMYADMIN_PORT:-8080}:80"
+    environment:
+      - PMA_HOST=mariadb
+      - PMA_ARBITRARY=1
+    depends_on:
+      - mariadb
+    networks:
+      - lemp-network
+    restart: unless-stopped
+
+  phpfpm:
+    build:
+      context: ./php
+      dockerfile: Dockerfile
+    container_name: lemp-phpfpm
+    volumes:
+      - ./webroot:/var/www/html
+    working_dir: /var/www/html
+    networks:
+      - lemp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pidof php-fpm || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  mariadb:
+    image: mariadb:11
+    container_name: lemp-mariadb
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-lemp_root_password}
+      - MYSQL_INITDB_SKIP_TZINFO=1
+    volumes:
+      - mariadb-data:/var/lib/mysql
+      - ./data:/docker-entrypoint-initdb.d:ro
+      - ./mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+    networks:
+      - lemp-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+networks:
+  lemp-network:
+    driver: bridge
+
+volumes:
+  mariadb-data:

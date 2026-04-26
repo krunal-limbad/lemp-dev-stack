@@ -1,0 +1,33 @@
+# Environment files
+.env
+.env.*
+
+# Docker
+.dockerignore
+
+# PHP
+composer.phar
+composer.lock
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# System
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Backup
+*.sql
+
+# OS
+.svn/
+.git/
+CVS/
